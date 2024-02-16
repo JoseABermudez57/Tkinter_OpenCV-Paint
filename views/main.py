@@ -14,23 +14,29 @@ def relative_to_assets(path: str) -> Path:
     return ASSETS_PATH / Path(path)
 
 window = Tk()
-wintow_title = "PAINT UP"
+window_title = "PAINT UP"
+window.title(window_title)
 actions = True
-canvas_width = 600
-canvas_height = 500
+canvas_width = 595
+canvas_height = 419
 
 window.geometry("600x500")
 window.configure(bg = "#FFFFFF")
 
-img = 255*np.ones((canvas_height, canvas_width, 3), dtype = np.uint8)
+img = np.ones((canvas_height, canvas_width, 3), dtype = np.uint8)*255
 temp_img = img.copy()
 color = (0, 0, 0)
-brush = ["pencil", 3]
+brush = ["circle", 3]
+
+
+def get_radious(x1, y1, x2, y2):
+    return np.sqrt((x2-x1)**2 + (y2-y1)**2)
 
 
 def create_widgets():
-    window.configure(bg = "#FFFFFF")
+    global paint_img
 
+    window.configure(bg = "#FFFFFF")
 
     canvas = Canvas(
         window,
@@ -171,14 +177,78 @@ def create_widgets():
         image=image_image_2
     )
 
+
+    img_pil = Image.fromarray(img)
+    img_tk = ImageTk.PhotoImage(img_pil)
+    paint_img = tk.Label(window, image=img_tk)
+    paint_img.place(x=0, y=76)
+
     window.resizable(False, False)
+    window.bind("<B1-Motion>", draw)
+    window.bind("<ButtonRelease-1>", last_position)
     window.mainloop()
+    
+
+def update_image():
+    global img, temp_img, img_tk, paint_img
+    
+    img_pil = Image.fromarray(temp_img)
+    img_tk = ImageTk.PhotoImage(img_pil)
+    paint_img.config(image=img_tk)
+
+
+def last_position(event):
+    global actions, x2, y2, img, temp_img
+
+    x = event.x
+    y = event.y
+    img = temp_img
+    actions = True
+    x2 = x
+    y2 = y
+
+def draw(event):    
+    global actions, x1, x2, y1, y2, ix, iy, img, temp_img
+
+    x = event.x
+    y = event.y
+
+    if actions:
+        actions = False
+        x1, y1 = x, y
+        ix, iy = x, y
+
+    if brush[0] == 'circle':
+        temp_img = img.copy()
+        x2, y2, = x, y
+        radious = get_radious(x1, y1, x2, y2)
+        cv2.circle(temp_img, (x1, y1), int(radious), color, 2, lineType=cv2.LINE_AA)
+        update_image()
+    if brush[0] == 'rectangle':
+        temp_img = img.copy()
+        cv2.rectangle(temp_img, (x1, y1), (x, y), color, 2, lineType=cv2.LINE_AA)
+        update_image()
+    if brush[0] == 'pencil':
+        temp_img = img.copy()
+        cv2.line(img, (ix, iy), (x, y), color, thickness=2, lineType=cv2.LINE_AA)
+        ix, iy = x, y
+        update_image()
+    if brush[0] == 'line':
+        temp_img = img.copy()
+        cv2.line(temp_img, (x1, y1), (x, y), color, thickness=2, lineType=cv2.LINE_AA)
+        update_image()
+    if brush[0] == 'eraser':
+        cv2.circle(temp_img, (x, y), 20, (255, 255, 255), -1, lineType=cv2.LINE_AA)
+        update_image()
+
 
 def rgb_to_bgr(rgb):
     r, g, b = rgb
     return b, g, r
 
 def change_color():
+    global color
+
     color_changed = colorchooser.askcolor()
     if color_changed:
         color = tuple(map(int, color_changed[0]))
@@ -210,8 +280,9 @@ def change_to_eraser():
 
 
 def delete_draw():
-    img = 255*np.ones((600, 800, 3), dtype = np.uint8)
-    print("Draw deleted")
+    global temp_img
+    temp_img = 255*np.ones((600, 800, 3), dtype = np.uint8)
+    update_image()
 
 
 create_widgets()
