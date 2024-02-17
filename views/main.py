@@ -243,12 +243,13 @@ def create_widgets():
     )
 
     def save_entry_value(event):
-        if entry_1.get():
+        if entry_1.get() and int(entry_1.get()) > 0:
             try:
                 brush[1] = int(entry_1.get())
             except:
                 messagebox.showinfo("Alerta", "El valor de tamaño de pincel no es un valor valido")
-
+        else:
+            messagebox.showinfo("Alerta", "El valor de tamaño de pincel no es un valor valido")
 
     entry_image_1 = PhotoImage(
         file=relative_to_assets("entry_1.png"))
@@ -293,14 +294,9 @@ def update_image():
 
 
 def last_position(event):
-    global actions, x2, y2, img, temp_img
-
-    x = event.x
-    y = event.y
+    global actions, img, temp_img
     img = temp_img
     actions = True
-    x2 = x
-    y2 = y
 
 def draw(event):    
     global actions, x1, x2, y1, y2, ix, iy, img, temp_img
